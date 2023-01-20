@@ -15,13 +15,13 @@ domain = dom.Box3D()
 
 # domain.plot_boundary()
 
-value = 6.16
-epochs = 1000 
+
+epochs = 100
 n_sample = 1000 
 save_dir = "../data/type1"
 
 
-system = solver.Solver(domain, value)
+system = solver.Solver(domain)
 learning_rate = tf.keras.optimizers.schedules.PiecewiseConstantDecay([1000, 2000, 10000], [1e-2, 1e-3, 5e-4, 1e-4])
 optimizers = [tf.keras.optimizers.Adam(learning_rate) for i in range(2)]
 #system.A.load_weights('{}/{}'.format(save_dir, system.phi.name))
