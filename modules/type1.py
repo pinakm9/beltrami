@@ -14,9 +14,9 @@ B = grad phi
 
 
 class Network(tf.keras.models.Model):
-    def __init__(self, out_dim, name='vanilla_network', dtype=tf.float64, last_bias=None):
+    def __init__(self, out_dim, name='vanilla_network', dtype=tf.float32, last_bias=None):
         super().__init__(dtype=dtype, name=name) 
-        self.middle_layers = [tf.keras.layers.Dense(units=100, activation='tanh', dtype=dtype) for _ in range(2)]
+        self.middle_layers = [tf.keras.layers.Dense(units=50, activation='tanh', dtype=dtype) for _ in range(2)]
         self.final_layer = tf.keras.layers.Dense(units=out_dim, activation=None, use_bias=last_bias, dtype=dtype)
   
     def call(self, *args):
@@ -28,8 +28,8 @@ class Network(tf.keras.models.Model):
 class Solver:
     def __init__(self, domain):
         self.domain = domain 
-        self.A = Network(out_dim=3, name="potential", last_bias=False)
-        self.lam = Network(out_dim=1, name="multiplier", last_bias=True)
+        self.A = Network(out_dim=3, name="potential", dtype=domain.dtype, last_bias=False)
+        self.lam = Network(out_dim=1, name="multiplier", dtype=domain.dtype, last_bias=True)
         self.rho = 1.0
 
     
@@ -71,32 +71,44 @@ class Solver:
     def loss_F(self, front_boundary_data):
         x, y, z, nx, ny, nz = front_boundary_data
         Bx, By, Bz = tf.split(self.B(x, y, z), 3, axis=-1)
-        return tf.reduce_mean((By - self.value_y(x, y, z))**2) 
+        _Bx, _By, _Bz = tf.split(self.value(x, y, z), 3, axis=-1)
+        
+        return tf.reduce_mean((Bx-_Bx)**2 + (By-_By)**2 + (Bz-_Bz)**2)#tf.reduce_mean((By - self.value_y(x, y, z))**2) 
 
     def loss_B(self, back_boundary_data):
         x, y, z, nx, ny, nz = back_boundary_data
         Bx, By, Bz = tf.split(self.B(x, y, z), 3, axis=-1)
-        return tf.reduce_mean((By - self.value_y(x, y, z))**2) 
+        _Bx, _By, _Bz = tf.split(self.value(x, y, z), 3, axis=-1)
+        
+        return tf.reduce_mean((Bx-_Bx)**2 + (By-_By)**2 + (Bz-_Bz)**2)#return tf.reduce_mean((By - self.value_y(x, y, z))**2) 
 
     def loss_U(self, up_boundary_data):
         x, y, z, nx, ny, nz = up_boundary_data
         Bx, By, Bz = tf.split(self.B(x, y, z), 3, axis=-1)
-        return tf.reduce_mean((Bz)**2) 
+        _Bx, _By, _Bz = tf.split(self.value(x, y, z), 3, axis=-1)
+        
+        return tf.reduce_mean((Bx-_Bx)**2 + (By-_By)**2 + (Bz-_Bz)**2)#return tf.reduce_mean((Bz)**2) 
 
     def loss_D(self, down_boundary_data):
         x, y, z, nx, ny, nz = down_boundary_data
         Bx, By, Bz = tf.split(self.B(x, y, z), 3, axis=-1)
-        return tf.reduce_mean((Bz)**2)
+        _Bx, _By, _Bz = tf.split(self.value(x, y, z), 3, axis=-1)
+        
+        return tf.reduce_mean((Bx-_Bx)**2 + (By-_By)**2 + (Bz-_Bz)**2)#return tf.reduce_mean((Bz)**2)
     
     def loss_L(self, left_boundary_data):
         x, y, z, nx, ny, nz = left_boundary_data
         Bx, By, Bz = tf.split(self.B(x, y, z), 3, axis=-1)
-        return tf.reduce_mean((Bx - self.value_x(x, y, z))**2)
+        _Bx, _By, _Bz = tf.split(self.value(x, y, z), 3, axis=-1)
+        
+        return tf.reduce_mean((Bx-_Bx)**2 + (By-_By)**2 + (Bz-_Bz)**2)#return tf.reduce_mean((Bx - self.value_x(x, y, z))**2)
 
     def loss_R(self, right_boundary_data):
         x, y, z, nx, ny, nz = right_boundary_data
         Bx, By, Bz = tf.split(self.B(x, y, z), 3, axis=-1)
-        return tf.reduce_mean((Bx - self.value_x(x, y, z))**2)
+        _Bx, _By, _Bz = tf.split(self.value(x, y, z), 3, axis=-1)
+        
+        return tf.reduce_mean((Bx-_Bx)**2 + (By-_By)**2 + (Bz-_Bz)**2)#return tf.reduce_mean((Bx - self.value_x(x, y, z))**2)
 
 
     def loss_energy(self, domain_data):
@@ -197,7 +209,7 @@ class Solver:
         R = max(np.sqrt(p*p + q*q + r*r))
         p, q, r = p/R, q/R, r/R
         p, q, r = p.reshape(-1), q.reshape(-1), r.reshape(-1)
-        ax_B.quiver(x, y, z, p, q, r, length=0.2, colors=['blue']*len(x))
+        ax_B.quiver(x, y, z, p, q, r, length=0.1, colors=['blue']*len(x))
         ax_B.set_title(r'Computed $B$', fontsize=40)
         ax_B.grid(False)
         ax_B.set_xlabel('x', fontsize=40)
@@ -214,7 +226,7 @@ class Solver:
         R = max(np.sqrt(p*p + q*q + r*r))
         p, q, r = p/R, q/R, r/R
         p, q, r = p.reshape(-1), q.reshape(-1), r.reshape(-1)
-        ax_t.quiver(x, y, z, p, q, r, length=0.2, colors=['blue']*len(x))
+        ax_t.quiver(x, y, z, p, q, r, length=0.1, colors=['blue']*len(x))
         ax_t.set_title(r'True $B$', fontsize=40)
         ax_t.grid(False)
         ax_t.set_xlabel('x', fontsize=40)

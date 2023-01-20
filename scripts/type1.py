@@ -11,12 +11,13 @@ import type1 as solver
 import dom
 import tensorflow as tf
 
-domain = dom.Box3D()
+DTYPE = 'float64'
+domain = dom.Box3D(dtype=DTYPE)
 
 # domain.plot_boundary()
 
 
-epochs = 100
+epochs = 1000
 n_sample = 1000 
 save_dir = "../data/type1"
 
