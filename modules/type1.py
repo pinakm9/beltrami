@@ -147,7 +147,8 @@ class Solver:
     def train_step_mul(self, optimizer, domain_data):
         p, q, r = tf.split(self.curlB(*domain_data), 3, axis=-1)
         p1, q1, r1 = tf.split(self.B(*domain_data), 3, axis=-1)
-        mod_curl = tf.sqrt((p-p1)**2 + (q-q1)**2 + (r-r1)**2)
+        mod_curl2 = (p-p1)**2 + (q-q1)**2 + (r-r1)**2
+        mod_curl = tf.sqrt(mod_curl2)
         mul0 = self.lam(*domain_data) + self.rho * mod_curl
         with tf.GradientTape() as tape:
             loss = tf.reduce_mean((self.lam(*domain_data) - mul0)**2)
@@ -174,7 +175,7 @@ class Solver:
                 for i in range(10):
                     l2 = self.train_step_mul(optimizers[1], domain_data)
                 div_loss = tf.reduce_mean(self.divB(*domain_data)**2)
-                curl_loss = tf.reduce_mean(tf.reduce_sum(self.curlB(*domain_data)**2, axis=-1, keepdims=True))
+                curl_loss = self.loss_curlB(domain_data)
                 losses[epoch, :] = np.array([l1.numpy(), curl_loss.numpy(), bdry_loss.numpy(),\
                                engy_loss.numpy(), div_loss.numpy(), l2.numpy()])
                 if epoch % 10 == 0:
